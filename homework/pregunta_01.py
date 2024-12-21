@@ -5,6 +5,11 @@
 Escriba el codigo que ejecute la accion solicitada en cada pregunta.
 """
 
+# Importa las bibliotecas necesarias.
+import os # Para interactuar con el sistema de archivos.
+import zipfile # Para trabajar con archivos ZIP (abrir, extraer, etc.).
+import pandas as pd
+
 
 def pregunta_01():
     """
@@ -71,3 +76,74 @@ def pregunta_01():
 
 
     """
+
+    """
+    Función para extraer archivos de un ZIP, crear conjuntos de datos a partir de archivos
+    de texto organizados por sentimientos y guardar los datos como archivos CSV.
+
+    Dependencias:
+        - os
+        - zipfile
+        - pandas
+    """
+
+    # Define las rutas principales para trabajar con el ZIP y los directorios de salida.
+    zip_file_path = 'files/input.zip' # Ruta del archivo ZIP.
+    output_directory = 'files' # Carpeta base para la extracción y salida.
+    extraction_subdirectory = os.path.join(output_directory, 'input') # Subdirectorio de extracción.
+    output_dir = os.path.join(output_directory, 'output') # Subdirectorio para guardar los CSV.
+
+    try:
+        # Verifica si la carpeta de extracción ya existe
+        if os.path.exists(extraction_subdirectory):
+            print(f"La carpeta '{extraction_subdirectory}' ya existe. No se realizará ninguna operación.")
+        else:
+            # Crea el directorio base si no existe
+            os.makedirs(output_directory, exist_ok=True)
+
+            # Extrae el contenido del archivo ZIP
+            with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
+                zip_ref.extractall(output_directory)
+
+            print(f"Contenido extraído exitosamente en '{output_directory}'.")
+
+        # Opcional: Muestra los archivos extraídos en el directorio base.
+        print("Archivos en la carpeta de salida:")
+        for file in os.listdir(output_directory):
+            print(file)
+
+        # Define una función para crear un DataFrame a partir de los archivos de texto.
+        def create_dataset(directory):
+            data = [] # Lista para almacenar las frases y sus etiquetas.
+            for sentiment in ['negative', 'positive', 'neutral']: # Itera por los tipos de sentimiento.
+                sentiment_path = os.path.join(directory, sentiment) # Ruta del subdirectorio del sentimiento.
+                for filename in os.listdir(sentiment_path): # Itera por los archivos en ese subdirectorio.
+                    file_path = os.path.join(sentiment_path, filename) # Ruta completa del archivo.
+                    with open(file_path, 'r', encoding='utf-8') as file:
+                        text = file.read().strip() # Lee y limpia el contenido del archivo.
+                    data.append({'phrase': text, 'target': sentiment})  # Agrega la frase y el sentimiento como fila.
+            return pd.DataFrame(data) # Retorna un DataFrame con las frases y etiquetas.
+
+        # Crear directorio de salida si no existe
+        os.makedirs(output_dir, exist_ok=True)
+
+        # Crea los conjuntos de datos para entrenamiento y prueba.
+        train_data = create_dataset(os.path.join(extraction_subdirectory, 'train'))
+        test_data = create_dataset(os.path.join(extraction_subdirectory, 'test'))
+
+        # Guarda los conjuntos de datos en formato CSV.
+        train_data.to_csv(os.path.join(output_dir, 'train_dataset.csv'), index=False)
+        test_data.to_csv(os.path.join(output_dir, 'test_dataset.csv'), index=False)
+
+        print("Archivos CSV creados correctamente en la carpeta 'files/output/'.")
+
+    # Manejo de errores comunes.
+    except FileNotFoundError:
+        print(f"El archivo ZIP '{zip_file_path}' no existe.") # Si el archivo ZIP no se encuentra.
+    except zipfile.BadZipFile:
+        print(f"El archivo '{zip_file_path}' no es un archivo ZIP válido.") # Si el archivo no es un ZIP válido.
+    except Exception as e:
+        print(f"Ocurrió un error: {e}") # Para manejar cualquier otro error inesperado.
+
+# Llama a la función para ejecutar todo el proceso.
+pregunta_01()
